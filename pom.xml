@@ -30,7 +30,7 @@ SOFTWARE.
     <version>0.3</version>
   </parent>
   <artifactId>http</artifactId>
-  <version>0.6</version>
+  <version>0.8.4</version>
   <name>Artipie HTTP</name>
   <url>https://github.com/artipie/http</url>
   <description>HTTP layer of Artipie</description>

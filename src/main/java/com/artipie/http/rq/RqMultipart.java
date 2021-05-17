@@ -91,39 +91,12 @@ public final class RqMultipart {
      * Part of multipart.
      * @since 1.0
      */
-    public final class Part implements Publisher<ByteBuffer> {
-
-        /**
-         * Part headers.
-         */
-        private final Headers hdr;
-
-        /**
-         * Part body.
-         */
-        private final Publisher<ByteBuffer> source;
-
-        /**
-         * New part.
-         * @param headers Part headers
-         * @param source Part body
-         */
-        private Part(final Headers headers, final Publisher<ByteBuffer> source) {
-            this.hdr = headers;
-            this.source = source;
-        }
-
-        @Override
-        public void subscribe(final Subscriber<? super ByteBuffer> sub) {
-            this.source.subscribe(sub);
-        }
+    public interface Part extends Publisher<ByteBuffer> {
 
         /**
          * Part headers.
          * @return Headers
          */
-        public Headers headers() {
-            return this.hdr;
-        }
+        Headers headers();
     }
 }

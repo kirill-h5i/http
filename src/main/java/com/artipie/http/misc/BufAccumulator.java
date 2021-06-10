@@ -2,16 +2,21 @@
  * The MIT License (MIT) Copyright (c) 2020-2021 artipie.com
  * https://github.com/artipie/npm-adapter/LICENSE.txt
  */
-package com.artipie.http.rq.multipart;
+package com.artipie.http.misc;
 
 import java.io.Closeable;
 import java.nio.ByteBuffer;
+import java.util.function.Consumer;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * ByteBuffer accumulator.
+ *
+ * @implNote This class is not thread safe
  * @since 1.0
  */
-final class BufAccumulator implements Closeable {
+@NotThreadSafe
+public final class BufAccumulator implements Closeable {
 
     /**
      * Buffer.
@@ -20,14 +25,16 @@ final class BufAccumulator implements Closeable {
 
     /**
      * Create buffer with initial capacity.
+     *
      * @param cap Initial capacity
      */
-    BufAccumulator(final int cap) {
+    public BufAccumulator(final int cap) {
         this.buffer = BufAccumulator.newEmptyBuffer(cap);
     }
 
     /**
      * Push next chunk of data to accumulator.
+     *
      * @param chunk Next buffer
      * @return Self
      */
@@ -74,6 +81,7 @@ final class BufAccumulator implements Closeable {
      * <p>
      * This operation may change the duplicated buffers or other references to this buffer.
      * </p>
+     *
      * @param size How many bytes to drop
      */
     public void drop(final int size) {
@@ -88,6 +96,7 @@ final class BufAccumulator implements Closeable {
      * It uses same shared memory as origin buffer but creates new
      * position and limit parameters.
      * </p>
+     *
      * @return Duplciated buffer
      */
     public ByteBuffer duplicate() {
@@ -96,7 +105,21 @@ final class BufAccumulator implements Closeable {
     }
 
     /**
+     * Read accumulator buffer. This operation reset buffer to empty.
+     * @param reader Buffer acceptor
+     */
+    public void read(final Consumer<? super ByteBuffer> reader) {
+        this.check();
+        final ByteBuffer copy = this.buffer.duplicate();
+        copy.rewind();
+        reader.accept(copy);
+        this.buffer.clear();
+        this.buffer.limit(0);
+    }
+
+    /**
      * Get byte array.
+     *
      * @return Byte array from accumulator starting from the beginning to limit.
      */
     public byte[] array() {

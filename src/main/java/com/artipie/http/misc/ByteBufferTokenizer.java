@@ -2,11 +2,12 @@
  * The MIT License (MIT) Copyright (c) 2020-2021 artipie.com
  * https://github.com/artipie/npm-adapter/LICENSE.txt
  */
-package com.artipie.http.rq.multipart;
+package com.artipie.http.misc;
 
 import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * ByteBuffer tokenizer splits sequence of chunks of {@link ByteBuffer}s separated
@@ -31,6 +32,7 @@ import java.util.Arrays;
  * @since 1.0
  * @checkstyle MethodBodyCommentsCheck (500 lines)
  */
+@NotThreadSafe
 public final class ByteBufferTokenizer implements Closeable {
 
     /**
@@ -133,6 +135,8 @@ public final class ByteBufferTokenizer implements Closeable {
 
     /**
      * Flush buffer, sends all remaining data to receiver.
+     * This method guarantee that the receiver will be called with {@code end} param, even if
+     * the buffer doesn't contain any bytes.
      */
     private void flush() {
         final ByteBuffer dup = this.acc.duplicate();

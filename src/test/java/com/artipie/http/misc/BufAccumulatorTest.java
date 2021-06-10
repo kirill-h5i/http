@@ -2,7 +2,7 @@
  * The MIT License (MIT) Copyright (c) 2020-2021 artipie.com
  * https://github.com/artipie/npm-adapter/LICENSE.txt
  */
-package com.artipie.http.rq.multipart;
+package com.artipie.http.misc;
 
 import java.nio.ByteBuffer;
 import org.hamcrest.MatcherAssert;

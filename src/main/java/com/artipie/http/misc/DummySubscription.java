@@ -2,7 +2,7 @@
  * The MIT License (MIT) Copyright (c) 2020-2021 artipie.com
  * https://github.com/artipie/npm-adapter/LICENSE.txt
  */
-package com.artipie.http.rq.multipart;
+package com.artipie.http.misc;
 
 import org.reactivestreams.Subscription;
 
@@ -11,7 +11,7 @@ import org.reactivestreams.Subscription;
  * It's a requirement of reactive-streams specification to
  * call {@code onSubscribe} on subscriber before any other call.
  */
-enum DummySubscription implements Subscription {
+public enum DummySubscription implements Subscription {
     /**
      * Dummy value.
      */

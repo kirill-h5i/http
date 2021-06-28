@@ -13,12 +13,14 @@ import org.reactivestreams.Publisher;
 import wtf.g4s8.mime.MimeType;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
  * Multipart request.
  * <p>
- * Parses multipart request into body parts as publisher of {@link Request}s.
+ * Parses multipart request into body parts as publisher of {@code Request}s.
  * It accepts bodies acoording to
  * <a href="https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html">RFC-1341-7.2</a>
  * specification.
@@ -43,14 +45,16 @@ public final class RqMultipart {
      */
     private Publisher<ByteBuffer> upstream;
 
+    private final ExecutorService exec;
+
     /**
      * Multipart request from headers and body upstream.
-     *
-     * @param headers Request headers
+     *  @param headers Request headers
      * @param body    Upstream
+     * @param exec
      */
-    public RqMultipart(final Headers headers, final Publisher<ByteBuffer> body) {
-        this(new ContentType(headers), body);
+    public RqMultipart(final Headers headers, final Publisher<ByteBuffer> body, ExecutorService exec) {
+        this(new ContentType(headers), body, exec);
     }
 
     /**
@@ -59,9 +63,10 @@ public final class RqMultipart {
      * @param ctype Content type
      * @param body  Upstream
      */
-    public RqMultipart(final ContentType ctype, final Publisher<ByteBuffer> body) {
+    public RqMultipart(final ContentType ctype, final Publisher<ByteBuffer> body, ExecutorService exec) {
         this.ctype = ctype;
         this.upstream = body;
+        this.exec = exec;
     }
 
     /**
@@ -70,20 +75,25 @@ public final class RqMultipart {
      * @return Publisher of parts
      */
     public Publisher<Part> parts() {
-        final MultiParts pub = new MultiParts(
-                MimeType.of(ctype.getValue())
-                        .param("boundary")
-                        .map(String::getBytes)
-                        .orElseThrow(
-                                () -> new ArtipieHttpException(
-                                        RsStatus.BAD_REQUEST,
-                                        "Content-type boundary param missed"
-                                )
-                        ),
-                Executors.newCachedThreadPool()
-        );
-        this.upstream.subscribe(pub);
+        final MultiParts pub = new MultiParts(this.boundary(), this.exec);
+        exec.submit(() -> this.upstream.subscribe(pub));
         return pub;
+    }
+
+    /**
+     * Multipart boundary.
+     * @return Boundary string
+     */
+    private String boundary() {
+        final String header = MimeType.of(ctype.getValue())
+                .param("boundary")
+                .orElseThrow(
+                        () -> new ArtipieHttpException(
+                                RsStatus.BAD_REQUEST,
+                                "Content-type boundary param missed"
+                        )
+                );
+        return String.format("\r\n--%s", header);
     }
 
     /**

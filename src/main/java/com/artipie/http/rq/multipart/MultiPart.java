@@ -9,7 +9,6 @@ import com.artipie.http.misc.BufAccumulator;
 import com.artipie.http.misc.ByteBufferTokenizer;
 import com.artipie.http.misc.DummySubscription;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -103,17 +102,20 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
      */
     private final AtomicBoolean completed;
 
+    private final MultiParts.Completion<?> completion;
+
     /**
      * New multipart request part.
      * @param upstream Upstream subscription
      * @param ready Ready callback
      * @param exec Back-pressure async executor
      */
-    MultiPart(final Subscription upstream, final Consumer<? super RqMultipart.Part> ready,
+    MultiPart(final Subscription upstream, final MultiParts.Completion<?> completion, final Consumer<? super RqMultipart.Part> ready,
         final ExecutorService exec) {
         this.upstream = upstream;
         this.ready = ready;
         this.exec = exec;
+        this.completion = completion;
         this.tokenizer = new ByteBufferTokenizer(
             this, MultiPart.DELIM.getBytes(), MultiPart.CAP_PART
         );
@@ -142,14 +144,25 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
             acc.rewind();
             if (acc.hasRemaining()) {
                 sub.onNext(acc);
+            } else {
+                this.upstream.request(1L);
             }
             this.tmpacc.close();
             if (this.completed.get()) {
                 sub.onComplete();
+                this.completion.itemCompleted();
             } else {
                 this.downstream.set(sub);
             }
         }
+    }
+
+    private static String debugBuf(final ByteBuffer buf) {
+        final ByteBuffer duplicate = buf.duplicate();
+        duplicate.rewind();
+        final byte[] bytes = new byte[duplicate.remaining()];
+        duplicate.get(bytes);
+        return new String(bytes);
     }
 
     @Override
@@ -176,6 +189,7 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
                 final Subscriber<? super ByteBuffer> sub = this.downstream.getAndSet(null);
                 if (sub != null) {
                     sub.onComplete();
+                    this.completion.itemCompleted();
                 }
             }
         }
@@ -204,6 +218,6 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
      * Flush all data in temporary buffers.
      */
     void flush() {
-        this.push(ByteBuffer.wrap(MultiPart.DELIM.getBytes(StandardCharsets.US_ASCII)));
+        this.tokenizer.close();
     }
 }

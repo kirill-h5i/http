@@ -80,7 +80,7 @@ final class MultiPartTest {
                     return;
                 }
                 this.part = new MultiPart(
-                    subscription, this.future::complete, Executors.newCachedThreadPool()
+                    subscription, MultiParts.Completion.FAKE, this.future::complete, Executors.newCachedThreadPool()
                 );
                 subscription.request(1);
             }

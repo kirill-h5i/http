@@ -9,12 +9,13 @@ import com.artipie.asto.ext.ContentAs;
 import com.artipie.http.headers.ContentType;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.Executors;
 
 /**
  * Test case for multipart request parser.
@@ -23,17 +24,16 @@ import org.junit.jupiter.api.Test;
 final class RqMultipartTest {
 
     @Test
-    @Disabled
     @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-    void processesSimpleMultipartRequest() throws Exception {
+    void processesFullMultipartRequest() throws Exception {
         final String first = String.join(
             "\n",
-            "This is implicitly typed plain ASCII text.",
+            "1) This is implicitly typed plain ASCII text.",
             "It does NOT end with a linebreak."
         );
         final String second = String.join(
             "\n",
-            "This is explicitly typed plain ASCII text.",
+            "2) This is explicitly typed plain ASCII text.",
             "It DOES end with a linebreak."
         );
         final String simple = String.join(
@@ -57,7 +57,8 @@ final class RqMultipartTest {
         final List<String> parsed = Flowable.fromPublisher(
             new RqMultipart(
                 new ContentType("multipart/mixed; boundary=\"simple boundary\""),
-                new Content.From(simple.getBytes(StandardCharsets.US_ASCII))
+                new Content.From(simple.getBytes(StandardCharsets.US_ASCII)),
+                Executors.newCachedThreadPool()
             ).parts()
         ).<String>flatMapSingle(
             part -> Single.just(part).to(ContentAs.STRING)

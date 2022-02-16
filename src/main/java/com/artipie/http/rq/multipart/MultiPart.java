@@ -23,7 +23,7 @@ import org.reactivestreams.Subscription;
  */
 @SuppressWarnings("PMD.NullAssignment")
 final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver, Subscription {
-    
+
     /**
      * Shared executor service.
      */

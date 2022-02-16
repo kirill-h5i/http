@@ -23,6 +23,11 @@ import org.reactivestreams.Subscription;
  */
 @SuppressWarnings("PMD.NullAssignment")
 final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver, Subscription {
+    
+    /**
+     * Shared executor service.
+     */
+    private static final ExecutorService EXEC = Executors.newCachedThreadPool();
 
     /**
      * Header buffer capacity.
@@ -81,11 +86,6 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
     private final BufAccumulator tmpacc;
 
     /**
-     * Async back-pressure executor.
-     */
-    private final ExecutorService exec;
-
-    /**
      * Completed flag.
      */
     private volatile boolean completed;
@@ -112,7 +112,6 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
      */
     MultiPart(final Completion<?> completion, final Consumer<? super RqMultipart.Part> ready) {
         this.ready = ready;
-        this.exec = Executors.newSingleThreadExecutor();
         this.completion = completion;
         this.tokenizer = new ByteBufferTokenizer(
             this, MultiPart.DELIM.getBytes(), MultiPart.CAP_PART
@@ -170,7 +169,7 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
                 this.demand += amt;
             }
         }
-        this.exec.submit(this::deliver);
+        MultiPart.EXEC.submit(this::deliver);
     }
 
     @Override
@@ -207,7 +206,7 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
                 this.tokenizer.close();
             }
             this.completed = true;
-            this.exec.submit(this::deliver);
+            MultiPart.EXEC.submit(this::deliver);
         }
     }
 
@@ -218,7 +217,7 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
     private void nextChunk(final ByteBuffer next) {
         this.tmpacc.write(next);
         if (this.downstream != null) {
-            this.exec.submit(this::deliver);
+            MultiPart.EXEC.submit(this::deliver);
         }
     }
 
@@ -247,7 +246,6 @@ final class MultiPart implements RqMultipart.Part, ByteBufferTokenizer.Receiver,
                 this.tmpacc.close();
                 this.downstream.onComplete();
                 this.downstream = null;
-                this.exec.shutdown();
                 this.completion.itemCompleted();
             }
         }
